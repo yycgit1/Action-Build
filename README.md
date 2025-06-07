@@ -1,60 +1,136 @@
 **`简体中文`** | [English](README-en.md)
  
-[![Build](https://img.shields.io/badge/GitHub%20Actions-Build-181717?logo=github&logoColor=white&style=flat-square)](https://github.com/Numbersf/Action-Build/actions/workflows/Build%20SukiSU%20Ultra%20OnePlus.yml) [![Channel](https://img.shields.io/badge/Follow-Telegram-blue.svg?logo=telegram)](https://t.me/taichi91) [![OnePlus Kernel Manifest](https://img.shields.io/badge/OnePlus%20Kernel%20Manifest-EB0029?logo=oneplus&logoColor=white&style=flat-square)](https://github.com/OnePlusOSS/kernel_manifest)
+[![Build](https://img.shields.io/badge/GitHub%20Actions-Build-181717?logo=github&logoColor=white&style=flat-square)](https://github.com/Numbersf/Action-Build/actions/workflows/Build%20SukiSU%20Ultra%20OnePlus.yml) [![Channel](https://img.shields.io/badge/Follow-Telegram-blue.svg?logo=telegram)](https://t.me/taichi91) [![OnePlus Kernel Manifest](https://img.shields.io/badge/OnePlus%20Kernel%20Manifest-EB0029?logo=oneplus&logoColor=white&style=flat-square)](https://github.com/OnePlusOSS/kernel_manifest) [![Coolapk](https://img.shields.io/badge/Follow-Coolapk-3DDC84?style=flat-square&logo=android&logoColor=white)](http://www.coolapk.com/u/28259173)
  
 # Action-Build
 **```Build OnePlus SukiSU Ultra KPM Kernel```**
  
 # 公告
  
-配置文件中的``_x``后缀是你正在使用系统版本的代号。比如``_w Android16、_v Android15、_u Android14、_t Android13、_sAndroid12``,以此类推-**倒序字母小写**。而无后缀的一般是一个机型的出厂``Android``版本。目前我只在预选中添加了``Android15``的机型也就是``_v``后缀,如果你在使用其他的安卓版本,请手动将``_v``改成其他代号
+------
+> [!NOTE]
+>配置文件中的``_x``后缀是你正在使用系统版本的代号。**倒序字母小写**。而无后缀的一般是一个机型的出厂``Android``版本。目前我只在预选中添加了``Android15``的机型也就是``_v``后缀,如果你在使用其他的安卓版本,请手动将``_v``改成其他代号
+> <details>
+> <summary><strong>点击查看详细的版本代号(部分未来可能会有改变)</strong></summary>
+>
+>>`_z Android19 (Zebra Cake)`
+>
+>>`_y Android18 (Yogurt Parfait)`
+>
+>>`_x Android17 (Xmas Pudding)`
+>
+>>`_w Android16 (Wedding Cake)`<strong>
+>
+>>`_v Android15 (Vanilla Ice Cream)`
+>
+>>`_u Android14 (Upside Down Cake)`
+>
+>>`_t Android13 (Tiramisu)`
+>
+>>`_s Android12 (Snow Cone)`</strong>
+>
+>>`_r Android11 (Red Velvet Cake)`
+>
+>>`_q Android10 (Quince Tart)`
+>
+>>`_p Android9 (Pie)`
+>
+>>`_o Android8 (Oreo)`
+>
+>>`_n Android7 (Nougat)`
+>
+>>`_m Android6 (Marshmallow)`
+>
+>>`_l Android5 (Lollipop)`
+>
+>>`_k Android4.4 (KitKat)`
+>
+>>`_j Android4.3–4.1 (Jelly Bean)`
+>
+>>`_i Android4.0 (Ice Cream Sandwich)`
+>
+>>`_h Android3.x (Honeycomb)`
+>
+>>`_g Android2.3 (Gingerbread)`
+>
+>>`_f Android2.2 (FroYo)`
+>
+>>`_e Android2.1 (Eclair)`
+>
+>>`_d Android1.6 (Donut)`
+>
+>>`_c Android1.5 (Cupcake)`
+>
+> </details>
  
 ------
- 
-关于要跑多久的问题,划分四档,一般来说越往前的机型跑的速度越快
->***列举部分机型需要的时间***
->>>1.sm8450、sm8475、sm8550
- 
->>`30~35min,max:45min`
->>>2.sm7675、sm7550、sm8650
- 
->>`1h1min~1h12min,max:1h32min`
->>>3.sm8750
- 
->>`2h1min~2h22min,max:2h45min`
->>>4.已知的特殊机型:部分非A15机型
- 
->>`1h22min~1h28min,max:?`
+> [!IMPORTANT]
+>关于要跑多久的问题 一般来说越往前的机型跑的速度越快
+> <details>
+> <summary><strong>点击查看使用极速编译clang make的用时</strong></summary>
+>
+>>>>0.已知的特殊机型:部分非A15机型(eg:一加11-A14;一加11-A13)
 > 
-也就是说,如果你跑的机型时长超过了以上的最高时间,请尝试重新跑并查看``step``确保不是官方自己的问题
+>>>`1h12min~1h17min,max:?`
+>>>>0.其他所有机型
+> 
+>>>`22min~31min,max:35min`
+> </details>
+> 
+> <details>
+> <summary><strong>点击查看使用官方build.sh的用时</strong></summary>
+>
+>>>>0.已知的特殊机型:部分非A15机型(eg:一加11-A14;一加11-A13不支持)
+> 
+>>>`1h22min~1h28min,max:?`
+>>>>1.sm8450、sm8475、sm8550
+> 
+>>>`30~35min,max:45min`
+>>>>2.sm7675、sm7550、sm8650
+> 
+>>>`1h1min~1h12min,max:1h32min`
+>>>>3.sm8750
+> 
+>>>`2h1min~2h22min,max:2h45min`
+>> 
+> </details>
+>
+>也就是说,如果你跑的时长超过了对应机型的最高时间,请尝试重新跑并查看``step``确保不是官方自己的问题
  
 ------
-部分设备的``lz4kd``存在问题,修复中,**跑不出来请先不要启用``ZRAM算法``**,请提前备份``boot.img``
+> [!WARNING]
+>部分设备的``lz4kd``存在问题,修复中,**跑不出来请先不要启用``ZRAM``算法**,请提前备份``boot.img``
  
 ------
-记得**音量下**安装模块
+> [!CAUTION]
+>请不要在**保``root``更新**时安装模块!
+ 
+> [!TIP]
+>记得**音量下**安装模块!
  
 ------
  
 # 更新日志
+--允许自定义内核后缀  <- **`beta`**  
+```
+1.当自定义内核后缀为空时,使用随机字符串,不再是默认的“x.xx.xxx-androidxx-8-o-g3b1e97b8b29f”
+2.当自定义启用时,修改内核为“x.xx.xxx-androidxx-自定义内容”,同时也不再保留androidxx-8-o-g3b1e97b8b29f
+3.当使用clang make(Fast Build)时,为新的源内核信息x.xx.xxx-o-g3b1e97b8b29f添加缺失的内核android版本号,再进行1或2中的操作
+```  
+--支持部分机型极速编译`(目前支持5.10、5.15、6.1、6.6)`  
+--修复`OnePlus Ace5Pro、OnePlus 13`跑不出来无法开机问题,直接使用官方dtbo就可以直接开机[@reigadegr](https://github.com/reigadegr)  
+--支持显示自己填入的内容在`Show selected inputs debug`这一步,同时工作流名称也可以看到一些东西  
 --从写入 `ak3.zip` 的配置文件后缀中删除潜在的版本代码,替换成精确的 `Android` 版本号`XX.X.X`
 ```
 AnyKernel3_SukiSUUltra_12896_oneplus_ace2pro_Android15.0.0_KPM_VFS.zip
 AnyKernel3_SukiSUUltra_12896_oneplus_13_Android15.0.2_KPM_VFS.zip
 AnyKernel3_SukiSUUltra_12896_oneplus_11_Android14.1.0_KPM_VFS.zip
 ```
---暂时性修复`OnePlus Ace5Pro、OnePlus 13`跑不出来的问题[@reigadegr](https://github.com/reigadegr)  
---允许自定义内核后缀  <- **`beta`**  
-```
-1.当自定义内核后缀为空时,使用随机字符串,不再是默认的“x.xx.xxx-androidxx-8-o-g3b1e97b8b29f”
-2.当自定义启用时,修改内核为“x.xx.xxx-androidxx-自定义内容”,同时也不再保留androidxx-8-o-g3b1e97b8b29f
-```  
 --`KPM` 默认开启，不再可关闭  
---新增 `dir4`、`dir5` 路径用于支持 `sm8750` 和部分机型开启 ZRAM 后的新路径（比如 `ace2p`、`13T`）[@ShirkNeko](https://github.com/ShirkNeko)  
+--新增 `dir4`、`dir5` 路径用于支持 `sm8750` 和部分机型开启 `ZRAM` 后的新路径（比如 `ace2p`、`13T`）[@ShirkNeko](https://github.com/ShirkNeko)  
 --添加 `zram` 模块的 `LZ4K` 压缩算法支持[@ShirkNeko](https://github.com/ShirkNeko)  
 --同步 `susfs` 模块上游下载频道的变化，解决无法下载的问题  
 --优化 `sm8750`、`sm7675` 的 `build` 方案  
---修复版本号错误  
 --新增 `dir3` 路径用于支持 `sm8475`（比如 `ace2`）  
---支持自动下载最新 `CI/Release` 的 `susfs` 模块并调用 `ksud` 安装  
+--支持自动下载最新 `CI` 的 `susfs` 模块并调用 `ksud` 安装、自动获取管理器`CI-APK`解压但不安装  
 --支持 `KPM`（无需任何修改复制）、`VFS HOOK`（自选是否开启）  
