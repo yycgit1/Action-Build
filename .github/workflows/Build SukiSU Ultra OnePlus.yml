@@ -6,7 +6,7 @@ on:
         type: choice
         description: "配置文件"
         required: true
-        default: oneplus_ace2pro_v
+        default: oneplus_ace3_v
         options:
           - oneplus_nord_ce4_v
           - oneplus_ace_3v_v
@@ -451,7 +451,7 @@ jobs:
           MAKE_ARGS="LLVM=1 ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- CC=clang \
             RUSTC=../../prebuilts/rust/linux-x86/1.73.0b/bin/rustc \
             PAHOLE=../../prebuilts/kernel-build-tools/linux-x86/bin/pahole \
-            LD=ld.lld HOSTLD=ld.lld KCFLAGS+=-Wno-error"
+            LD=ld.lld HOSTLD=ld.lld KCFLAGS+=-O2"
           # 如果是 5.10，添加 LLVM_IAS=1
           if [[ "$KERNEL_VERSION" == "5.10" ]]; then
             MAKE_ARGS="LLVM_IAS=1 $MAKE_ARGS"
