@@ -59,7 +59,7 @@ on:
         type: string
         description: "自定义构建时间 (留空则使用当前时间)"
         required: false
-        default: "Fri May 30 04:01:05 UTC 2025"
+        default: "Fri May 30 04:01:05 UTC 2024"
       FAST_BUILD:
         type: boolean
         description: "是否启用极速构建？"
