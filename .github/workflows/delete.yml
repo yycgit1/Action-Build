@@ -10,6 +10,7 @@ on:
         default: 'Build OnePlus_SukiSU Ultra All'
         options:
           - Build OnePlus_SukiSU Ultra All
+          - All Build Start UP
           - Build TEST
           - Build TEST2
       count:
@@ -33,6 +34,11 @@ on:
         default: false
       reverse_order:
         description: '从旧到新开始清理？'
+        required: false
+        type: boolean
+        default: false
+      cancel_all:
+        description: '是否一键取消指定工作流的所有运行？'
         required: false
         type: boolean
         default: false
@@ -61,6 +67,7 @@ jobs:
           DELETE_SUCCESS: ${{ inputs.delete_success }}
           DELETE_CANCELLED: ${{ inputs.delete_cancelled }}
           REVERSE_ORDER: ${{ inputs.reverse_order }}
+          CANCEL_ALL: ${{ inputs.cancel_all }}
           WORKFLOW_NAME: ${{ inputs.workflow_name }}
           CURRENT_RUN_ID: ${{ github.run_id }}
         run: |
@@ -76,30 +83,46 @@ jobs:
           echo "开始分页获取所有运行记录..."
           PER_PAGE=100
           PAGE=1
-          MATCHED_RUNS="[]"
+          ALL_RUNS="[]"
           while true; do
             RESP=$(gh api "repos/$REPO/actions/workflows/$WORKFLOW_ID/runs?per_page=$PER_PAGE&page=$PAGE")
             RUNS=$(echo "$RESP" | jq '.workflow_runs')
             COUNT_THIS_PAGE=$(echo "$RUNS" | jq 'length')
-
-            if [ "$COUNT_THIS_PAGE" -eq 0 ]; then
-              break
-            fi
-
-            MATCHED_RUNS=$(jq -s 'add' <(echo "$MATCHED_RUNS") <(echo "$RUNS"))
+            if [ "$COUNT_THIS_PAGE" -eq 0 ]; then break; fi
+            ALL_RUNS=$(jq -s 'add' <(echo "$ALL_RUNS") <(echo "$RUNS"))
             PAGE=$((PAGE + 1))
           done
 
-          echo "共获取到 $(echo "$MATCHED_RUNS" | jq 'length') 条运行记录。"
+          echo "共获取到 $(echo "$ALL_RUNS" | jq 'length') 条运行记录。"
 
-          # 排序顺序：旧到新 or 新到旧
-          if [[ "$REVERSE_ORDER" == "true" ]]; then
-            SORTED_RUNS=$(echo "$MATCHED_RUNS" | jq 'sort_by(.run_started_at)')
-          else
-            SORTED_RUNS=$(echo "$MATCHED_RUNS" | jq 'sort_by(.run_started_at) | reverse')
+          if [[ "$CANCEL_ALL" == "true" ]]; then
+            echo "开始取消工作流 \"$WORKFLOW_NAME\" 中最多 $COUNT 条正在进行或排队的运行..."
+            CANCEL_COUNT=0
+            echo "$ALL_RUNS" | jq -c '.[] | select(.status == "in_progress" or .status == "queued")' | while read run; do
+              if [[ $CANCEL_COUNT -ge $COUNT ]]; then break; fi
+              ID=$(echo "$run" | jq -r '.id')
+              if [[ "$ID" == "$CURRENT_RUN_ID" ]]; then
+                echo "跳过当前运行 ID: $ID，避免取消自身"
+                continue
+              fi
+              STATE=$(echo "$run" | jq -r '.status')
+              echo "取消运行 ID: $ID (状态: $STATE)"
+              if gh api -X POST "repos/$REPO/actions/runs/$ID/cancel"; then
+                CANCEL_COUNT=$((CANCEL_COUNT + 1))
+              else
+                echo "取消失败 ID: $ID"
+              fi
+            done
+            echo "已尝试取消 $CANCEL_COUNT 条运行。"
           fi
 
-          # 仅保留前 N 条
+          echo "开始处理删除逻辑..."
+          if [[ "$REVERSE_ORDER" == "true" ]]; then
+            SORTED_RUNS=$(echo "$ALL_RUNS" | jq 'sort_by(.run_started_at)')
+          else
+            SORTED_RUNS=$(echo "$ALL_RUNS" | jq 'sort_by(.run_started_at) | reverse')
+          fi
+
           TO_DELETE_RUNS=$(echo "$SORTED_RUNS" | jq ".[0:${COUNT}]")
 
           echo "$TO_DELETE_RUNS" | jq -c '.[]' | while read run; do

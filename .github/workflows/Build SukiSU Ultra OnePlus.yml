@@ -45,7 +45,7 @@ on:
           - NoN
       KSU_META:
         type: string
-        description: "分支名/自定义版本标识"
+        description: "分支名(不可留空)/自定义版本标识(留空不修改)"
         required: false
         default: "susfs-main/lshwjgpt"
       BUILD_TIME:
@@ -86,7 +86,7 @@ on:
 
 jobs:
   build:
-    name: ${{ github.event.inputs.FAST_BUILD == 'true' && ' [FAST]' || '' }}${{ github.event.inputs.SCHED == 'true' && ' [SCHED]' || '' }}${{ github.event.inputs.ZRAM == 'true' && ' [ZRAM]' || '' }}For ${{ github.event.inputs.FILE }} ${{ github.event.inputs.SUFFIX }}
+    name: ${{ github.event.inputs.FAST_BUILD == 'true' && ' [FAST]' || '' }}${{ github.event.inputs.SCHED == 'true' && ' [SCHED]' || '' }}${{ github.event.inputs.ZRAM == 'true' && ' [ZRAM]' || '' }}${{ github.event.inputs.KPM == 'true' && ' [KPM]' || '' }}For ${{ github.event.inputs.FILE }} ${{ github.event.inputs.SUFFIX }}
     runs-on: ubuntu-latest
     env:
       CCACHE_COMPILERCHECK: "%compiler% -dumpmachine; %compiler% -dumpversion"
@@ -102,7 +102,7 @@ jobs:
           echo "🔧 Validating input combinations..."
           FILE="${{ github.event.inputs.FILE }}"
           
-          # Define valid combinations with base model only (no _v/_t/_u...)
+          # Define valid combinations with base model only (no _v/_u/_t..) 仅保留机型信息前缀,去除可能存在的最后一个后缀(_v/_u/_t..)
           declare -A VALID_COMBINATIONS=(
             ["oneplus_nord_ce4_lite_5g"]="sm6375 blair android14 6.1"
             ["oneplus_nord_ce4"]="sm7550 crow android14 5.15"
@@ -132,7 +132,6 @@ jobs:
             ["oneplus_pad_3"]="sm8750 sun android15 6.6"
           )
 
-          # Recursively strip "_[a-z]+" suffixes to match base key
           get_combination() {
             local key="$1"
             while true; do
@@ -148,7 +147,7 @@ jobs:
             done
           }
 
-          # Try to resolve FILE to a valid combination
+          # Try to resolve FILE to a valid combination 尝试寻找机型
           COMBINATION="$(get_combination "$FILE")" || {
             echo "❌ Unknown FILE: $FILE"
             echo "Valid base models:"
@@ -158,19 +157,16 @@ jobs:
             exit 1
           }
 
-          # Split the combination into fields
           read CPU CPUD ANDROID_VERSION KERNEL_VERSION <<< "$COMBINATION"
 
           echo "✅ Valid combination: FILE=$FILE, CPU=$CPU, CPUD=$CPUD, ANDROID_VERSION=$ANDROID_VERSION, KERNEL_VERSION=$KERNEL_VERSION"
-          
-          # Export to environment
           echo "CPU=$CPU" >> $GITHUB_ENV
           echo "CPUD=$CPUD" >> $GITHUB_ENV
           echo "ANDROID_VERSION=$ANDROID_VERSION" >> $GITHUB_ENV
           echo "KERNEL_VERSION=$KERNEL_VERSION" >> $GITHUB_ENV
           
-          # Set BUILD_METHOD based on ANDROID_VERSION and KERNEL_VERSION
-          if [[ "$ANDROID_VERSION" == "android15" && "$KERNEL_VERSION" == "6.6" ]]; then
+          # Set BUILD_METHOD based on ANDROID_VERSION and KERNEL_VERSION 通过机型信息判断是否调整编译方式
+          if [[ "$KERNEL_VERSION" == "6.6" ]]; then
             echo "BUILD_METHOD=perf" >> $GITHUB_ENV
           else
             echo "BUILD_METHOD=gki" >> $GITHUB_ENV
@@ -273,12 +269,12 @@ jobs:
               mkdir -p "${{ env.CCACHE_DIR }}"
               ccache -M ${{ env.CCACHE_MAXSIZE }}
               touch "$INIT_FLAG"
-              echo "ccache 初始化完成"
+              echo "✅ ccache 初始化完成"
             else
-              echo "ccache 已初始化，跳过"
+              echo "✅ ccache 已初始化，跳过"
             fi
           else
-            echo "未安装 ccache，跳过"
+            echo "❌ 未安装 ccache，跳过"
           fi
           ccache -s
 
@@ -320,7 +316,7 @@ jobs:
 
             echo "Modifying: $path"
 
-            # 删除 -dirty
+            # Remove -dirty
             sed -i 's/ -dirty//g' "$path"
             sed -i '$i res=$(echo "$res" | sed '\''s/-dirty//g'\'')' "$path"
 
@@ -374,7 +370,7 @@ jobs:
 
             echo "Modifying: $path"
 
-            # 删除 -dirty
+            # Remove -dirty
             sed -i 's/ -dirty//g' "$path"
             sed -i '$i res=$(echo "$res" | sed '\''s/-dirty//g'\'')' "$path"
 
@@ -427,24 +423,48 @@ jobs:
 
           KSU_API_VERSION=$(curl -fsSL "https://raw.githubusercontent.com/SukiSU-Ultra/SukiSU-Ultra/$BRANCH_NAME/kernel/Makefile" | \
             grep -m1 "KSU_VERSION_API :=" | awk -F'= ' '{print $2}' | tr -d '[:space:]')
-          [[ -z "$KSU_API_VERSION" ]] && KSU_API_VERSION="3.1.7"
+
+          if [[ -z "$KSU_API_VERSION" || "$(printf '%s\n' "$KSU_API_VERSION" "3.1.7" | sort -V | head -n1)" != "3.1.7" ]]; then
+            KSU_API_VERSION="3.1.7"
+          fi
 
           echo "KSU_API_VERSION=$KSU_API_VERSION" >> $GITHUB_ENV
 
-          KSU_VERSION_FULL="v$KSU_API_VERSION-$CUSTOM_TAG@$BRANCH_NAME"
-          echo "KSU_VERSION_FULL=$KSU_VERSION_FULL" >> $GITHUB_ENV
+          GIT_HASH=$(git rev-parse --short HEAD)
+          echo "GIT_HASH=$GIT_HASH"
 
+          if [[ -z "$CUSTOM_TAG" || "$CUSTOM_TAG" == "$BRANCH_NAME" ]]; then
+            VERSION_FULL="v$KSU_API_VERSION-$GIT_HASH@$BRANCH_NAME"
+          else
+            VERSION_FULL="v$KSU_API_VERSION-$CUSTOM_TAG@$BRANCH_NAME[$GIT_HASH]"
+          fi
+
+          sed -i '/define get_ksu_version_full/,/endef/d' kernel/Makefile
           sed -i '/KSU_VERSION_API :=/d' kernel/Makefile
           sed -i '/KSU_VERSION_FULL :=/d' kernel/Makefile
 
-          echo "KSU_VERSION_API := $KSU_API_VERSION" >> kernel/Makefile
-          echo "KSU_VERSION_FULL := $KSU_VERSION_FULL" >> kernel/Makefile
+          VERSION_DEFINITIONS=$(cat <<EOF
+            define get_ksu_version_full
+            $VERSION_FULL
+            endef
+
+            KSU_VERSION_API := $KSU_API_VERSION
+            KSU_VERSION_FULL := $VERSION_FULL
+          EOF
+          )
+
+          awk -v def="$VERSION_DEFINITIONS" '
+            /REPO_OWNER :=/ {print; print def; inserted=1; next}
+            1
+            END {if (!inserted) print def}
+          ' kernel/Makefile > kernel/Makefile.tmp && mv kernel/Makefile.tmp kernel/Makefile
 
           KSU_VERSION=$(expr $(git rev-list --count main 2>/dev/null || echo 13000) + 10700)
           echo "KSUVER=$KSU_VERSION" >> $GITHUB_ENV
 
-          echo "::group:: 最终 Makefile 中版本信息预览"
-          grep -A5 "KSU_VERSION_API" kernel/Makefile
+          echo "::group::最终 Makefile 中版本信息及部分调试结果预览"
+          grep -A10 "REPO_OWNER" kernel/Makefile
+          grep "KSU_VERSION_FULL" kernel/Makefile
           echo "::endgroup::"
 
       - name: Apply Patches SukiSU Ultra
@@ -471,7 +491,7 @@ jobs:
           SUBLEVEL=$(grep '^SUBLEVEL *=' Makefile | head -n1 | cut -d= -f2 | tr -d ' ')
 
           if [ "$GKI_V" == "android13-5.15" ] && [ "$SUBLEVEL" -lt 123 ]; then
-            echo "修复内核版本5.15.0到5.15.123可能存在的一些遗留问题"
+            echo "修复内核版本5.15.0到5.15.123仅支持旧版C库造成的一些bug"
             curl -Lo fix_5.15.legacy.patch --retry 5 --retry-delay 2 --retry-connrefused https://raw.githubusercontent.com/Numbersf/Action-Build/SukiSU-Ultra/patches/fix_5.15.legacy
             patch -p1 < fix_5.15.legacy.patch
             echo "fix_5.15_patch完成"
@@ -486,7 +506,7 @@ jobs:
             echo "trusty_exists=$TRUSTY_EXISTS" >> $GITHUB_OUTPUT
 
             if [[ "$TRUSTY_EXISTS" == "false" ]]; then
-              echo "修复内核版本6.6部分机型susfs的问题"
+              echo "修复内核版本6.6部分机型缺失Trusty OS导致的susfs的报错"
               sed -i 's/-32,12 +32,38/-32,11 +32,37/g' 50_add_susfs_in_gki-${{ env.ANDROID_VERSION }}-${KERNEL_VERSION}.patch
               sed -i '/#include <trace\/hooks\/fs.h>/d' 50_add_susfs_in_gki-${{ env.ANDROID_VERSION }}-${KERNEL_VERSION}.patch
             fi
@@ -618,7 +638,7 @@ jobs:
           rm -rf ./sched_ext/.git
           cd common/kernel/sched
 
-      # 自定义内核构建时间，不要加入#1 SMP PREEMPT
+      # Custom kernel build time, without adding #1 SMP PREEMPT 自定义内核构建时间，不要加入#1 SMP PREEMPT
       - name: Custom BUILD_TIME
         if: ${{ github.event.inputs.BUILD_TIME != '' && !contains('Ff', github.event.inputs.BUILD_TIME) }}
         shell: bash
@@ -705,7 +725,7 @@ jobs:
         run: |
           git clone https://github.com/Numbersf/AnyKernel3 --depth=1
           rm -rf ./AnyKernel3/.git
-          mkdir -p kernel_workspace/kernel_platform/out/FinalImageFind/
+          mkdir -p kernel_workspace/kernel_platform/out/Final-Image-Find/
           dir1=""
           dir2=""
           image_path=$(find "./kernel_workspace/kernel_platform/common/out/" -name "Image" | head -n 1)
@@ -725,7 +745,7 @@ jobs:
           if [ -n "$image_path" ] && [ -f "$image_path" ]; then
             echo "Image file finally located at: $image_path"
             cp "$image_path" ./AnyKernel3/Image
-            cp "$image_path" kernel_workspace/kernel_platform/out/FinalImageFind/Image
+            cp "$image_path" kernel_workspace/kernel_platform/out/Final-Image-Find/Image
           fi
           if [ -n "$dir2" ] && [ "${{ env.CPU }}" = "sm8750" ] && [ "${{ github.event.inputs.FAST_BUILD }}" = "false" ]; then
             echo "当前正在使用官方脚本构建 sm8750，需额外复制一些其它镜像文件：dtbo.img、system_dlkm.img、vendor_dlkm.img、vendor_boot.img。请注意，如果你在刷完官方脚本构建后想换成极速构建，请还原这些分区！"
@@ -746,7 +766,7 @@ jobs:
       - name: Apply patch_linux and replace Image
         if: ${{ github.event.inputs.KPM == 'true' }}
         run: |
-          cd kernel_workspace/kernel_platform/out/FinalImageFind
+          cd kernel_workspace/kernel_platform/out/Final-Image-Find
           curl -LO --retry 5 --retry-delay 2 --retry-connrefused https://raw.githubusercontent.com/Numbersf/Action-Build/SukiSU-Ultra/patches/patch_linux
           chmod +x patch_linux
           ./patch_linux
@@ -813,8 +833,8 @@ jobs:
       - name: Auto map FILE to Android version by manifest
         id: file_clean
         run: |
-          file="${{ github.event.inputs.FILE }}"
           cpu="${{ env.CPU }}"
+          file="${{ github.event.inputs.FILE }}"
           xml=".repo/manifests_fallback/${file}.xml"
           cd $GITHUB_WORKSPACE
           file_base=$(echo "$file" | sed -E 's/_[a-z]$//')
