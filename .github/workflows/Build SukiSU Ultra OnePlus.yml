@@ -39,7 +39,7 @@ on:
         type: choice
         description: "下载SUSFS模块调用方式"
         required: true
-        default: CI
+        default: NoN
         options:
           - CI
           - Release
